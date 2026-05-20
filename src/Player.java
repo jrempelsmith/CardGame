@@ -5,6 +5,7 @@ public class Player {
     private ArrayList<Card> hand;
     private int numPoints;
     private boolean isFrozen;
+    private String team; // "team1" or "team2"
 
     public Player(String name) {
         this.name = name;
@@ -19,21 +20,23 @@ public class Player {
         Card randomCard = hand.remove(randomCardIndex);
         randomCard.play(this, players);
 
-        // pick a random player (but not oneself) to apply any additional actions to
+        // pick a random player on the opposing team to apply any additional actions to
         Player target = chooseTarget(players);
+
         // do possible additional damage action
         if (randomCard instanceof DealsDamage) {
-            DealsDamage damageCard = (DealsDamage)randomCard;
+            DealsDamage damageCard = (DealsDamage) randomCard;
             damageCard.doDamage(this, target);
         }
 
         // do possible additional freeze action
         if (randomCard instanceof AppliesFreeze) {
-            AppliesFreeze freezeCard = (AppliesFreeze)randomCard;
+            AppliesFreeze freezeCard = (AppliesFreeze) randomCard;
             freezeCard.freeze(this, target);
         }
     }
-    //Choose a target
+
+    // Choose a random target from the opposing team only
     public Player chooseTarget(ArrayList<Player> players) {
         boolean selectedAnotherPlayer = false;
         Player otherPlayer = null;
@@ -41,12 +44,14 @@ public class Player {
         while (!selectedAnotherPlayer) {
             int randomPlayerIndex = Rand.randomInt(0, players.size());
             otherPlayer = players.get(randomPlayerIndex);
-            if (otherPlayer != this) {
+            // only target players on the opposing team
+            if (otherPlayer != this && !otherPlayer.getTeam().equals(this.team)) {
                 selectedAnotherPlayer = true;
             }
         }
         return otherPlayer;
     }
+
     public boolean hasCardsInHand() {
         return hand.size() > 0;
     }
@@ -80,6 +85,15 @@ public class Player {
         return name;
     }
 
+    // Assigns this player to a team
+    public void setTeam(String team) {
+        this.team = team;
+    }
+
+    public String getTeam() {
+        return team;
+    }
+
     public void addPoints(int pointsToAdd) {
         numPoints += pointsToAdd;
         if (numPoints < 0) {
@@ -97,13 +111,14 @@ public class Player {
 
     public void displayStatus() {
         System.out.println(" | ----- " + name + " ----- ");
+        System.out.println(" | Team: " + team);
         System.out.println(" | Points: " + numPoints);
         if (isFrozen) {
             System.out.println(" | *FROZEN*");
         }
         System.out.println(" | Cards in hand:");
         for (int i = 0; i < hand.size(); i++) {
-            System.out.print(" | " + (i+1) + ": ");
+            System.out.print(" | " + (i + 1) + ": ");
             System.out.println(hand.get(i));
         }
         System.out.println(" | ----- ----- ----- ");

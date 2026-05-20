@@ -16,7 +16,7 @@ public class Game {
     private float pointCardChances; // % chance (from 0-1) of generating a point card
     private float attackCardChances; // % chance (from 0-1) of generating an attack card
     private float freezeCardChances; // % chance (from 0-1) of generating a freeze card
-    //private float thiefCardChances; // thief card chances are the leftovers of the other chances
+    // private float thiefCardChances; // thief card chances are the leftovers of the other chances
 
     private float chancesOfDamageCardBeingInDamageDeck; // % chance of a generated damage card being added to the damage-only deck
 
@@ -35,44 +35,37 @@ public class Game {
     // ------ End of Game Objects ----- //
 
 
-
-    // Starts up game
+    // Constructor -- initializes settings and all game object lists, then generates the decks
     public Game() {
-        // Set game settings
         setGameSettings();
-
-        // Game objects
         players = new ArrayList<Player>();
         mixedDeck = new ArrayList<Card>();
         damageDeck = new ArrayList<DealsDamage>();
         team1 = new ArrayList<Player>();
         team2 = new ArrayList<Player>();
-
-        // Generate the decks
         generateDecks();
     }
 
+    // Adds a player to the game's player list
     public void registerPlayer(Player player) {
         players.add(player);
     }
 
+    // Sets the two teams using players chosen in Main, and assigns each player their team label
+    public void setTeams(Player t1p1, Player t1p2, Player t2p1, Player t2p2) {
+        t1p1.setTeam("team1");
+        t1p2.setTeam("team1");
+        t2p1.setTeam("team2");
+        t2p2.setTeam("team2");
+        team1.add(t1p1);
+        team1.add(t1p2);
+        team2.add(t2p1);
+        team2.add(t2p2);
+    }
+
     public void run() {
 
-        // Display Players and Teams
-        int index1 = Rand.randomInt(0, 4);
-        int index2 = Rand.randomInt(0, 4);
-        if (index1 != index2) {
-            team1.add(players.get(index1));
-            team1.add(players.get(index2));
-
-            for (int i = 0; i < players.size(); i++) {
-                if (i != index1 && i != index2){
-                    team2.add(players.get(i));
-                }
-            }
-        }
-
-
+        // Display all players and their team assignments
         System.out.println("");
         System.out.println("Players: ");
         for (int i = 0; i < players.size(); i++) {
@@ -94,8 +87,7 @@ public class Game {
             System.out.println(hold.getName());
         }
 
-
-        // deal cards to each player
+        // Deal starting cards to each player from the mixed deck
         int cardsAdded = 0;
         while (cardsAdded < startingHandSize) {
             for (int i = 0; i < players.size(); i++) {
@@ -110,32 +102,33 @@ public class Game {
         int currentPlayerIndex = -1; // will increase to 0 when the loop starts
         Player currentPlayer;
 
-        // game loop -- loop as long as either deck has cards
-
+        // Main game loop -- continues until both decks are empty
         while (mixedDeck.size() > 0 || damageDeck.size() > 0) {
 
-            // switch to next player
+            // Advance to the next player, wrapping around to the start if needed
             currentPlayerIndex += 1;
             if (currentPlayerIndex >= players.size()) {
                 currentPlayerIndex = 0;
             }
             currentPlayer = players.get(currentPlayerIndex);
 
+            // Show how many cards are left in each deck
             System.out.println("\n# cards remaining in Mixed deck: " + mixedDeck.size() + ".");
             System.out.println("# cards remaining in Damage deck: " + damageDeck.size() + ".\n");
 
+            // Display the current player's status and wait for input before starting their turn
             System.out.println("It's " + currentPlayer.getName() + "'s turn.\n");
             currentPlayer.displayStatus();
             Input.waitForUserToPressEnter("\nPress Enter to play " + currentPlayer.getName() + "'s turn.");
 
-            // check if the player should be skipped
+            // If the player is frozen, skip their turn and unfreeze them
             if (currentPlayer.isFrozen()) {
                 System.out.println(currentPlayer.getName() + " is frozen! Skipping turn.");
                 currentPlayer.unfreeze();
                 continue; // skips the rest of the body of the loop, and returns to the start of the loop
             }
 
-            // human player chooses their action
+            // Human player gets to manually choose their action
             if (currentPlayer instanceof HumanPlayer) {
                 System.out.println("Choose an action:");
                 System.out.println("1: Play a card from your hand");
@@ -144,18 +137,23 @@ public class Game {
                 int action = Input.getUserInt("Enter a number: ");
 
                 if (action == 1) {
+                    // Play a card from hand
                     currentPlayer.playRandomCardFromHand(players);
                 } else if (action == 2) {
+                    // Draw from the mixed deck and add it to hand (don't play it)
                     Object drawnObject = drawRandomCard(mixedDeck);
                     Card drawnCard = (Card) drawnObject;
                     currentPlayer.addCardToHand(drawnCard);
                     System.out.println(currentPlayer.getName() + " drew a " + drawnCard + " from the Mixed deck.");
                 } else if (action == 3) {
+                    // Draw from the damage deck and immediately apply its damage effect
                     Object drawnObject = drawRandomCard(damageDeck);
                     DealsDamage damageCard = (DealsDamage) drawnObject;
                     System.out.println(currentPlayer.getName() + " drew a " + damageCard + " from the Damage deck.");
                     Player otherPlayer = currentPlayer.chooseTarget(players);
                     damageCard.doDamage(currentPlayer, otherPlayer);
+
+                    // If the damage card also applies a freeze, apply that too
                     if (damageCard instanceof AppliesFreeze) {
                         AppliesFreeze freezeCard = (AppliesFreeze) damageCard;
                         freezeCard.freeze(currentPlayer, otherPlayer);
@@ -163,7 +161,7 @@ public class Game {
                 }
 
             } else {
-                // generate a random value to choose a random action
+                // AI player -- generate a random value to choose a random action
                 float randomValue = Rand.random();
 
                 // 1. play a card from player's hand
@@ -174,35 +172,34 @@ public class Game {
                 // 2. OR draw a card from mixed deck (but don't play it yet)
                 else if (damageDeck.size() == 0 || (mixedDeck.size() > 0 && randomValue < playerChancesOfPlayingCard + playerChancesOfDrawingFromMixedDeck)) {
                     Object drawnObject = drawRandomCard(mixedDeck);
-                    Card drawnCard = (Card)drawnObject;
+                    Card drawnCard = (Card) drawnObject;
                     currentPlayer.addCardToHand(drawnCard);
-
                     System.out.println(currentPlayer.getName() + " drew a " + drawnCard + " from the Mixed deck.");
                 }
 
                 // 3. OR draw a card from damage deck and use its damage effect immediately, without getting points
                 else {
                     Object drawnObject = drawRandomCard(damageDeck);
-                    DealsDamage damageCard = (DealsDamage)drawnObject;
-
+                    DealsDamage damageCard = (DealsDamage) drawnObject;
                     System.out.println(currentPlayer.getName() + " drew a " + damageCard + " from the Damage deck.");
-
                     Player otherPlayer = currentPlayer.chooseTarget(players);
-
                     damageCard.doDamage(currentPlayer, otherPlayer);
+
+                    // If the damage card also applies a freeze, apply that too
                     if (damageCard instanceof AppliesFreeze) {
-                        AppliesFreeze freezeCard = (AppliesFreeze)damageCard;
+                        AppliesFreeze freezeCard = (AppliesFreeze) damageCard;
                         freezeCard.freeze(currentPlayer, otherPlayer);
                     }
                 }
 
                 Input.waitForUserToPressEnter("\nPress Enter to end " + currentPlayer.getName() + "'s turn.\n");
             }
+
             System.out.println("");
             System.out.println("-------------------------------------------------------------------------------------------------------------------");
         }
 
-        // End game: determine which Player had the most points
+        // All decks are empty -- end the game and declare a winner
         declareWinner();
     }
 
@@ -225,7 +222,6 @@ public class Game {
         if (playerChancesOfDrawingFromDamageDeck < 0f) {
             System.out.println("ERROR: Chances of different player actions are not all positive.");
         }
-
 
         // Deck settings
         totalNumberOfCards = 20;
@@ -257,6 +253,7 @@ public class Game {
             else if (randomValue < pointCardChances + attackCardChances) {
                 AttackCard newAttackCard = new AttackCard();
 
+                // add to damage deck or mixed deck based on chance
                 if (Rand.random() < chancesOfDamageCardBeingInDamageDeck) {
                     damageDeck.add(newAttackCard);
                 } else {
@@ -268,6 +265,7 @@ public class Game {
             else if (randomValue < pointCardChances + attackCardChances + freezeCardChances) {
                 FreezeCard newFreezeCard = new FreezeCard();
 
+                // add to damage deck or mixed deck based on chance
                 if (Rand.random() < chancesOfDamageCardBeingInDamageDeck) {
                     damageDeck.add(newFreezeCard);
                 } else {
@@ -282,28 +280,8 @@ public class Game {
         }
     }
 
+    // Tallies up each team's points and announces the winning team
     private void declareWinner() {
-        /*
-        int highestScore = 0;
-        Player playerWithHighestScore = null;
-
-        System.out.println("\nFinal Scoreboard:");
-
-        // PLAYER
-        for (int i = 0; i < players.size(); i++) {
-            Player p = players.get(i);
-            System.out.println(p.getName() + ": " + p.getNumPoints());
-
-            // update highest score tracker
-            if (p.getNumPoints() >= highestScore) {
-                highestScore = p.getNumPoints();
-                playerWithHighestScore = p;
-            }
-        }
-
-         */
-
-        // TEAM
         int team1Score = 0;
         int team2Score = 0;
         System.out.println("\nFinal Scoreboard: ");
@@ -321,14 +299,11 @@ public class Game {
             team2Score += p.getNumPoints();
         }
 
+        // Announce the team with the higher total score as the winner
         if (team1Score < team2Score) {
             System.out.println("Team 2 Wins with " + team2Score + " Points!");
-        }
-        else {
+        } else {
             System.out.println("Team 1 Wins with " + team1Score + " Points!");
         }
-
-
-        //System.out.println("Player '" + playerWithHighestScore.getName() + "' wins!");
     }
 }

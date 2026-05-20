@@ -7,19 +7,21 @@ public class HumanPlayer extends Player {
     }
 
     @Override
+    // Only shows and allows targeting players on the opposing team
     public Player chooseTarget(ArrayList<Player> players) {
         int count = 1;
         for (int i = 0; i < players.size(); i++) {
-            if (players.get(i) != this) {
+            // only show players on the opposing team
+            if (players.get(i) != this && !players.get(i).getTeam().equals(this.getTeam())) {
                 System.out.println(count + ": " + players.get(i).getName());
                 count++;
             }
-
         }
-    int choice = Input.getUserInt("Choose a target (enter a number)");
+
+        int choice = Input.getUserInt("Choose a target (enter a number): ");
         int count2 = 1;
-        for(int i =0; i < players.size(); i++) {
-            if (players.get(i) != this) {
+        for (int i = 0; i < players.size(); i++) {
+            if (players.get(i) != this && !players.get(i).getTeam().equals(this.getTeam())) {
                 if (count2 == choice) {
                     return players.get(i);
                 }
@@ -28,12 +30,4 @@ public class HumanPlayer extends Player {
         }
         return null;
     }
-
-
-
-
-
-
-
-
 }
