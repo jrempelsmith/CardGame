@@ -183,39 +183,39 @@ public class Game {
                     System.out.println(currentPlayer.getName() + " drew a " + drawnCard + " from the Mixed deck.");
                 }
 
-            // 3. OR draw a card from damage deck and use its damage effect immediately, without getting points
-            else {
-                Object drawnObject = drawRandomCard(damageDeck);
-                DealsDamage damageCard = (DealsDamage) drawnObject;
-
-                System.out.println(currentPlayer.getName() + " drew a " + damageCard + " from the Damage deck.");
-
-                if (damageCard instanceof WildCard) {
-                    WildCard wildCard = (WildCard) damageCard;
-                    wildCard.play(currentPlayer, players);
-
-                }
-                // pick a random player (but not oneself) to apply the damage card to
+                // 3. OR draw a card from damage deck and use its damage effect immediately, without getting points
                 else {
-                    boolean selectedAnotherPlayer = false;
-                    Player otherPlayer = null;
+                    Object drawnObject = drawRandomCard(damageDeck);
+                    DealsDamage damageCard = (DealsDamage) drawnObject;
+
+                    System.out.println(currentPlayer.getName() + " drew a " + damageCard + " from the Damage deck.");
+
+                    if (damageCard instanceof WildCard) {
+                        WildCard wildCard = (WildCard) damageCard;
+                        wildCard.play(currentPlayer, players);
+
+                    }
+                    // pick a random player (but not oneself) to apply the damage card to
+                    else {
+                        boolean selectedAnotherPlayer = false;
+                        Player otherPlayer = null;
 
 
-                    while (!selectedAnotherPlayer) {
-                        int randomPlayerIndex = Rand.randomInt(0, players.size());
-                        otherPlayer = players.get(randomPlayerIndex);
-                        if (otherPlayer != currentPlayer) {
-                            selectedAnotherPlayer = true;
+                        while (!selectedAnotherPlayer) {
+                            int randomPlayerIndex = Rand.randomInt(0, players.size());
+                            otherPlayer = players.get(randomPlayerIndex);
+                            if (otherPlayer != currentPlayer) {
+                                selectedAnotherPlayer = true;
+                            }
+                        }
+
+                        damageCard.doDamage(currentPlayer, otherPlayer);
+                        if (damageCard instanceof AppliesFreeze) {
+                            AppliesFreeze freezeCard = (AppliesFreeze) damageCard;
+                            freezeCard.freeze(currentPlayer, otherPlayer);
                         }
                     }
-
-                    damageCard.doDamage(currentPlayer, otherPlayer);
-                    if (damageCard instanceof AppliesFreeze) {
-                        AppliesFreeze freezeCard = (AppliesFreeze) damageCard;
-                        freezeCard.freeze(currentPlayer, otherPlayer);
-                    }
                 }
-            }
             }
 
             Input.waitForUserToPressEnter("\nPress Enter to end " + currentPlayer.getName() + "'s turn.\n");
