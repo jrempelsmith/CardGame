@@ -15,7 +15,8 @@ public class Game {
     private int totalNumberOfCards;
     private float pointCardChances; // % chance (from 0-1) of generating a point card
     private float attackCardChances; // % chance (from 0-1) of generating an attack card
-    private float freezeCardChances; // % chance (from 0-1) of generating a freeze card
+    private float freezeCardChances;// % chance (from 0-1) of generating a freeze card
+    private float wildCardChances;
     //private float thiefCardChances; // thief card chances are the leftovers of the other chances
 
     private float chancesOfDamageCardBeingInDamageDeck; // % chance of a generated damage card being added to the damage-only deck
@@ -159,9 +160,17 @@ public class Game {
 
                 System.out.println(currentPlayer.getName() + " drew a " + damageCard + " from the Damage deck.");
 
-                // pick a random player (but not oneself) to apply the damage card to
-                boolean selectedAnotherPlayer = false;
-                Player otherPlayer = null;
+                if (damageCard instanceof WildCard) {
+                    WildCard wildCard = (WildCard) damageCard;
+                    wildCard.play(currentPlayer, players);
+
+                }
+                    // pick a random player (but not oneself) to apply the damage card to
+                else {
+                    boolean selectedAnotherPlayer = false;
+                    Player otherPlayer = null;
+
+
 
                 while (!selectedAnotherPlayer) {
                     int randomPlayerIndex = Rand.randomInt(0, players.size());
@@ -215,9 +224,10 @@ public class Game {
         pointCardChances = 0.5f; // must be between 0 and 1
         attackCardChances = 0.25f; // must be between 0 and 1
         freezeCardChances = 0.15f; // must be between 0 and 1
+        wildCardChances = 0.1f; // must be between 0 and 1
 
         // thief card chances should be positive based on the math, but check just to be safe
-        float thiefCardChances = 1f - (pointCardChances + attackCardChances + freezeCardChances);
+        float thiefCardChances = 1f - (pointCardChances + attackCardChances + freezeCardChances + wildCardChances);
         if (thiefCardChances < 0f) {
             System.out.println("ERROR: Card chances are not all positive.");
         }
@@ -242,6 +252,18 @@ public class Game {
                     damageDeck.add(newAttackCard);
                 } else {
                     mixedDeck.add(newAttackCard);
+                }
+            }
+
+            // % chance of creating a wild card
+            else if (randomValue < pointCardChances + attackCardChances + freezeCardChances + wildCardChances) {
+                WildCard newWildCard = new WildCard();
+
+                // Because WildCard implements DealsDamage, it can legally be assigned to the damage deck!
+                if (Rand.random() < chancesOfDamageCardBeingInDamageDeck) {
+                    damageDeck.add(newWildCard);
+                } else {
+                    mixedDeck.add(newWildCard);
                 }
             }
 
