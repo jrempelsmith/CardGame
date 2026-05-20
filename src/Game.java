@@ -15,8 +15,9 @@ public class Game {
     private int totalNumberOfCards;
     private float pointCardChances; // % chance (from 0-1) of generating a point card
     private float attackCardChances; // % chance (from 0-1) of generating an attack card
-    private float freezeCardChances; // % chance (from 0-1) of generating a freeze card
-    // private float thiefCardChances; // thief card chances are the leftovers of the other chances
+    private float freezeCardChances;// % chance (from 0-1) of generating a freeze card
+    private float wildCardChances;
+    //private float thiefCardChances; // thief card chances are the leftovers of the other chances
 
     private float chancesOfDamageCardBeingInDamageDeck; // % chance of a generated damage card being added to the damage-only deck
 
@@ -37,12 +38,17 @@ public class Game {
 
     // Constructor -- initializes settings and all game object lists, then generates the decks
     public Game() {
+        // Set game settings
         setGameSettings();
+
+        // Game objects
         players = new ArrayList<Player>();
         mixedDeck = new ArrayList<Card>();
         damageDeck = new ArrayList<DealsDamage>();
         team1 = new ArrayList<Player>();
         team2 = new ArrayList<Player>();
+
+        // Generate the decks
         generateDecks();
     }
 
@@ -177,27 +183,46 @@ public class Game {
                     System.out.println(currentPlayer.getName() + " drew a " + drawnCard + " from the Mixed deck.");
                 }
 
-                // 3. OR draw a card from damage deck and use its damage effect immediately, without getting points
-                else {
-                    Object drawnObject = drawRandomCard(damageDeck);
-                    DealsDamage damageCard = (DealsDamage) drawnObject;
-                    System.out.println(currentPlayer.getName() + " drew a " + damageCard + " from the Damage deck.");
-                    Player otherPlayer = currentPlayer.chooseTarget(players);
-                    damageCard.doDamage(currentPlayer, otherPlayer);
+            // 3. OR draw a card from damage deck and use its damage effect immediately, without getting points
+            else {
+                Object drawnObject = drawRandomCard(damageDeck);
+                DealsDamage damageCard = (DealsDamage) drawnObject;
 
-                    // If the damage card also applies a freeze, apply that too
+                System.out.println(currentPlayer.getName() + " drew a " + damageCard + " from the Damage deck.");
+
+                if (damageCard instanceof WildCard) {
+                    WildCard wildCard = (WildCard) damageCard;
+                    wildCard.play(currentPlayer, players);
+
+                }
+                // pick a random player (but not oneself) to apply the damage card to
+                else {
+                    boolean selectedAnotherPlayer = false;
+                    Player otherPlayer = null;
+
+
+                    while (!selectedAnotherPlayer) {
+                        int randomPlayerIndex = Rand.randomInt(0, players.size());
+                        otherPlayer = players.get(randomPlayerIndex);
+                        if (otherPlayer != currentPlayer) {
+                            selectedAnotherPlayer = true;
+                        }
+                    }
+
+                    damageCard.doDamage(currentPlayer, otherPlayer);
                     if (damageCard instanceof AppliesFreeze) {
                         AppliesFreeze freezeCard = (AppliesFreeze) damageCard;
                         freezeCard.freeze(currentPlayer, otherPlayer);
                     }
                 }
-
-                Input.waitForUserToPressEnter("\nPress Enter to end " + currentPlayer.getName() + "'s turn.\n");
+            }
             }
 
+            Input.waitForUserToPressEnter("\nPress Enter to end " + currentPlayer.getName() + "'s turn.\n");
             System.out.println("");
             System.out.println("-------------------------------------------------------------------------------------------------------------------");
         }
+
 
         // All decks are empty -- end the game and declare a winner
         declareWinner();
@@ -230,9 +255,10 @@ public class Game {
         pointCardChances = 0.5f; // must be between 0 and 1
         attackCardChances = 0.25f; // must be between 0 and 1
         freezeCardChances = 0.15f; // must be between 0 and 1
+        wildCardChances = 0.1f; // must be between 0 and 1
 
         // thief card chances should be positive based on the math, but check just to be safe
-        float thiefCardChances = 1f - (pointCardChances + attackCardChances + freezeCardChances);
+        float thiefCardChances = 1f - (pointCardChances + attackCardChances + freezeCardChances + wildCardChances);
         if (thiefCardChances < 0f) {
             System.out.println("ERROR: Card chances are not all positive.");
         }
@@ -260,18 +286,29 @@ public class Game {
                     mixedDeck.add(newAttackCard);
                 }
             }
-
             // % chance of creating a freeze card
             else if (randomValue < pointCardChances + attackCardChances + freezeCardChances) {
                 FreezeCard newFreezeCard = new FreezeCard();
 
-                // add to damage deck or mixed deck based on chance
                 if (Rand.random() < chancesOfDamageCardBeingInDamageDeck) {
                     damageDeck.add(newFreezeCard);
                 } else {
                     mixedDeck.add(newFreezeCard);
                 }
             }
+
+            // % chance of creating a wild card
+            else if (randomValue < pointCardChances + attackCardChances + freezeCardChances + wildCardChances) {
+                WildCard newWildCard = new WildCard();
+
+                // Because WildCard implements DealsDamage, it can legally be assigned to the damage deck!
+                if (Rand.random() < chancesOfDamageCardBeingInDamageDeck) {
+                    damageDeck.add(newWildCard);
+                } else {
+                    mixedDeck.add(newWildCard);
+                }
+            }
+                // add to damage deck or mixed deck based on chance
 
             // % chance of creating a thief card
             else {
